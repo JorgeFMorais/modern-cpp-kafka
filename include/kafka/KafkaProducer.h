@@ -326,6 +326,7 @@ KafkaProducer::send(const ProducerRecord&             record,
     const auto  partition = record.partition();
     const auto  msgFlags  = (static_cast<unsigned int>(option == SendOption::ToCopyRecordValue ? RD_KAFKA_MSG_F_COPY : 0)
                              | static_cast<unsigned int>(queueFullAction == ActionWhileQueueIsFull::Block ? RD_KAFKA_MSG_F_BLOCK : 0));
+    const auto  timestamp = record.timestamp();
     const auto* keyPtr    = record.key().data();
     const auto  keyLen    = record.key().size();
     const auto* valuePtr  = record.value().data();
@@ -334,7 +335,7 @@ KafkaProducer::send(const ProducerRecord&             record,
     auto* rk        = getClientHandle();
     auto* opaquePtr = deliveryCbOpaque.get();
 
-    constexpr std::size_t VU_LIST_SIZE_WITH_NO_HEADERS = 6;
+    constexpr std::size_t VU_LIST_SIZE_WITH_NO_HEADERS = 7;
     std::vector<rd_kafka_vu_t> rkVUs(VU_LIST_SIZE_WITH_NO_HEADERS + record.headers().size());
 
     std::size_t uvCount = 0;
@@ -355,6 +356,12 @@ KafkaProducer::send(const ProducerRecord&             record,
         auto& vu = rkVUs[uvCount++];
         vu.vtype = RD_KAFKA_VTYPE_MSGFLAGS;
         vu.u.i   = static_cast<int>(msgFlags);
+    }
+
+    {   // Timestamp
+        auto& vu = rkVUs[uvCount++];
+        vu.vtype = RD_KAFKA_VTYPE_TIMESTAMP;
+        vu.u.i64 = timestamp.msSinceEpoch;
     }
 
     {   // Key

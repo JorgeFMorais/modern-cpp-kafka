@@ -23,6 +23,9 @@ public:
     ProducerRecord(Topic topic, Partition partition, const Key& key, const Value& value)
        : _topic(std::move(topic)), _partition(partition), _key(key), _value(value) {}
 
+    ProducerRecord(Topic topic, Partition partition, Timestamp timestamp, const Key& key, const Value& value)
+       : _topic(std::move(topic)), _partition(partition), _timestamp(timestamp), _key(key), _value(value) {}
+
     ProducerRecord(const Topic& topic, Partition partition, const Key& key, const Value& value, Id id)
         : ProducerRecord(topic, partition, key, value) { _id = id; }
 
@@ -41,6 +44,11 @@ public:
      * The partition to which the record will be sent (or UNKNOWN_PARTITION if no partition was specified).
      */
     Partition partition() const { return _partition; }
+
+    /**
+     * The timestamp (or null if no timestamp is specified).
+     */
+    Timestamp  timestamp()  const { return _timestamp; }
 
     /**
      * The key (or null if no key is specified).
@@ -74,6 +82,11 @@ public:
     void setPartition(Partition partition) { _partition = partition; }
 
     /**
+     * Set the timestamp.
+     */
+    void setPartition(Timestamp timestamp) { _timestamp = timestamp; }
+
+    /**
      * Set the key.
      */
     void setKey(const Key& key)            { _key = key; }
@@ -93,12 +106,14 @@ public:
         return _topic + "-" + (_partition == RD_KAFKA_PARTITION_UA ? "NA" : std::to_string(_partition)) + std::string(":")
             + (_id ? (std::to_string(*_id) + std::string(", ")) : " ")
             + (_headers.empty() ? "" : ("headers[" + KAFKA_API::toString(_headers) + "], "))
+            + (_timestamp ? (std::to_string(_timestamp)) + " " : " ")
             + _key.toString() + std::string("/") + _value.toString();
     }
 
 private:
     Topic        _topic;
     Partition    _partition;
+    Timestamp    _timestamp;
     Key          _key;
     Value        _value;
     Headers      _headers;
